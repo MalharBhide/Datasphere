@@ -29,6 +29,18 @@ function compareValues(a: CellValue, b: CellValue): number {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' })
 }
 
+function SortIcon({ col, sort }: { col: string; sort: SortState }) {
+  const isActive = sort.column === col && sort.direction !== null
+  return (
+    <span
+      className={['ml-1 text-[10px] select-none', isActive ? 'text-[#3B5BDB]' : 'text-slate-300'].join(' ')}
+      aria-hidden="true"
+    >
+      {isActive ? (sort.direction === 'asc' ? '▲' : '▼') : '⇅'}
+    </span>
+  )
+}
+
 export function DataPreview({ dataset, onSheetChange }: DataPreviewProps) {
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('')
@@ -76,80 +88,124 @@ export function DataPreview({ dataset, onSheetChange }: DataPreviewProps) {
     setPage(1)
   }
 
-  function sortIcon(col: string) {
-    if (sort.column !== col || !sort.direction) {
-      return (
-        <span className="ml-1 text-gray-300 text-xs" aria-hidden="true">⇅</span>
-      )
-    }
-    return (
-      <span className="ml-1 text-blue-500 text-xs" aria-hidden="true">
-        {sort.direction === 'asc' ? '↑' : '↓'}
-      </span>
-    )
-  }
-
   return (
     <div key={datasetKey} className="space-y-3">
-      {/* Header row */}
+      {/* ── Toolbar ──────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-gray-600">
-          <span className="font-medium text-gray-800">{dataset.fileName}</span>
-          {' · '}
-          <span>{dataset.rows.length.toLocaleString()} rows</span>
-          {' · '}
-          <span>{dataset.columns.length} columns</span>
+        {/* Stats */}
+        <div className="flex items-center gap-3 text-[13px]">
+          <span
+            className="font-medium"
+            style={{ color: 'var(--ds-text-primary)', fontFamily: 'var(--ds-font-mono)' }}
+          >
+            {dataset.fileName}
+          </span>
+          <span className="h-3.5 w-px" style={{ background: 'var(--ds-border-strong)' }} aria-hidden="true" />
+          <span style={{ color: 'var(--ds-text-secondary)' }}>
+            {dataset.rows.length.toLocaleString()} rows
+          </span>
+          <span style={{ color: 'var(--ds-text-muted)' }}>·</span>
+          <span style={{ color: 'var(--ds-text-secondary)' }}>
+            {dataset.columns.length} columns
+          </span>
           {filteredRows.length !== dataset.rows.length && (
-            <span className="ml-2 text-blue-600">
-              ({filteredRows.length.toLocaleString()} matching filter)
+            <span
+              className="rounded px-1.5 py-0.5 text-xs font-medium"
+              style={{ background: 'var(--ds-primary-light)', color: 'var(--ds-primary)' }}
+            >
+              {filteredRows.length.toLocaleString()} matching
             </span>
           )}
         </div>
 
-        {/* Sheet selector */}
-        {dataset.sheetNames && dataset.sheetNames.length > 1 && onSheetChange && (
-          <div className="flex items-center gap-2 text-sm">
-            <label htmlFor="sheet-select" className="text-gray-500">Sheet:</label>
-            <select
-              id="sheet-select"
-              value={dataset.activeSheet}
-              onChange={(e) => onSheetChange(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        {/* Sheet selector + filter */}
+        <div className="flex items-center gap-2">
+          {dataset.sheetNames && dataset.sheetNames.length > 1 && onSheetChange && (
+            <div className="flex items-center gap-1.5">
+              <label
+                htmlFor="sheet-select"
+                className="text-xs"
+                style={{ color: 'var(--ds-text-muted)' }}
+              >
+                Sheet
+              </label>
+              <select
+                id="sheet-select"
+                value={dataset.activeSheet}
+                onChange={(e) => onSheetChange(e.target.value)}
+                className="h-8 rounded-lg border px-2.5 text-[13px] transition-colors duration-150 cursor-pointer"
+                style={{
+                  borderColor: 'var(--ds-border-strong)',
+                  background: 'var(--ds-surface)',
+                  color: 'var(--ds-text-primary)',
+                }}
+              >
+                {dataset.sheetNames.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Filter input */}
+          <div className="relative">
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+              style={{ color: 'var(--ds-text-muted)' }}
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              aria-hidden="true"
             >
-              {dataset.sheetNames.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="search"
+              placeholder="Filter rows…"
+              value={filter}
+              onChange={handleFilterChange}
+              className="h-8 w-48 rounded-lg border pl-8 pr-3 text-[13px] transition-colors duration-150"
+              style={{
+                borderColor: 'var(--ds-border-strong)',
+                background: 'var(--ds-surface)',
+                color: 'var(--ds-text-primary)',
+              }}
+              aria-label="Filter preview rows"
+            />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Filter */}
-      <div className="relative">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="search"
-          placeholder="Filter rows…"
-          value={filter}
-          onChange={handleFilterChange}
-          className="w-full max-w-xs rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-1.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Filter preview rows"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="min-w-full text-sm">
+      {/* ── Table ────────────────────────────────────── */}
+      <div
+        className="overflow-x-auto rounded-xl border"
+        style={{ borderColor: 'var(--ds-border)', background: 'var(--ds-surface)' }}
+      >
+        <table className="min-w-full text-[13px]">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-10">#</th>
+            <tr
+              className="border-b"
+              style={{ background: '#F8F9FB', borderColor: 'var(--ds-border-strong)' }}
+            >
+              <th
+                className="px-3 py-2.5 text-left w-10"
+                style={{ color: 'var(--ds-text-muted)', fontSize: '11px' }}
+              >
+                #
+              </th>
               {dataset.columns.map((col) => (
                 <th
                   key={col}
-                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                  className="px-3 py-2.5 text-left whitespace-nowrap cursor-pointer select-none transition-colors duration-150 hover:bg-slate-100"
                   onClick={() => handleHeaderClick(col)}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--ds-text-secondary)',
+                  }}
                   aria-sort={
                     sort.column === col
                       ? sort.direction === 'asc'
@@ -159,33 +215,45 @@ export function DataPreview({ dataset, onSheetChange }: DataPreviewProps) {
                   }
                 >
                   {col}
-                  {sortIcon(col)}
+                  <SortIcon col={col} sort={sort} />
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y" style={{ borderColor: 'var(--ds-border)' }}>
             {pageRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={dataset.columns.length + 1}
-                  className="px-3 py-8 text-center text-sm text-gray-400"
+                  className="px-3 py-10 text-center text-sm"
+                  style={{ color: 'var(--ds-text-muted)' }}
                 >
                   No rows match the current filter.
                 </td>
               </tr>
             ) : (
               pageRows.map((row, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-3 py-1.5 text-xs text-gray-400 tabular-nums">
+                <tr
+                  key={i}
+                  className="transition-colors duration-100 hover:bg-[#F8FAFF]"
+                >
+                  <td
+                    className="px-3 py-2 text-[11px] tabular-nums"
+                    style={{ color: 'var(--ds-text-muted)' }}
+                  >
                     {(safePage - 1) * PAGE_SIZE + i + 1}
                   </td>
                   {dataset.columns.map((col) => (
                     <td
                       key={col}
-                      className={`px-3 py-1.5 max-w-[200px] truncate ${
-                        row[col] === null ? 'text-gray-300 italic' : 'text-gray-700'
-                      }`}
+                      className="px-3 py-2 max-w-[180px] truncate"
+                      style={{
+                        color: row[col] === null ? 'var(--ds-text-muted)' : 'var(--ds-text-primary)',
+                        fontFamily: 'var(--ds-font-mono)',
+                        fontSize: '13px',
+                        fontStyle: row[col] === null ? 'italic' : 'normal',
+                        fontWeight: 400,
+                      }}
                       title={cellStr(row[col])}
                     >
                       {row[col] === null ? 'null' : cellStr(row[col])}
@@ -198,18 +266,14 @@ export function DataPreview({ dataset, onSheetChange }: DataPreviewProps) {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">
-          Showing rows {Math.min((safePage - 1) * PAGE_SIZE + 1, sortedRows.length)}–
-          {Math.min(safePage * PAGE_SIZE, sortedRows.length)} of{' '}
-          {sortedRows.length.toLocaleString()}
+      {/* ── Pagination footer ─────────────────────────── */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-xs" style={{ color: 'var(--ds-text-muted)' }}>
+          {sortedRows.length === 0
+            ? 'No results'
+            : `Showing ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, sortedRows.length)} of ${sortedRows.length.toLocaleString()}`}
         </p>
-        <Pagination
-          currentPage={safePage}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setPage} />
       </div>
     </div>
   )

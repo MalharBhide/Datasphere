@@ -3,88 +3,126 @@ import { NavLink, Outlet } from 'react-router-dom'
 const navItems = [
   {
     to: '/',
+    end: true,
     label: 'Overview',
     icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ),
   },
   {
     to: '/clean',
+    end: false,
     label: 'Data Cleaning',
     icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
       </svg>
     ),
   },
 ]
 
+// ── Logo mark ──────────────────────────────────────────────────────────────
+
+function LogoMark() {
+  return (
+    <div className="w-7 h-7 rounded-lg bg-[#3B5BDB] flex items-center justify-center shrink-0">
+      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    </div>
+  )
+}
+
+// ── Sidebar nav item ───────────────────────────────────────────────────────
+
+function NavItem({ to, end, label, icon }: (typeof navItems)[0]) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        [
+          'flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-150 cursor-pointer',
+          isActive
+            ? 'bg-[#3B5BDB] text-white'
+            : 'text-slate-300 hover:bg-[#2A2F45] hover:text-white',
+        ].join(' ')
+      }
+    >
+      {icon}
+      {label}
+    </NavLink>
+  )
+}
+
+// ── AppLayout ──────────────────────────────────────────────────────────────
+
 export function AppLayout() {
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-200 shrink-0">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--ds-bg)' }}>
+
+      {/* ── Desktop sidebar ───────────────────────── */}
+      <aside
+        className="hidden md:flex flex-col w-56 shrink-0"
+        style={{ background: 'var(--ds-sidebar)' }}
+        aria-label="Application navigation"
+      >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-100">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <span className="font-semibold text-gray-900 text-[15px] tracking-tight">Datasphere</span>
+        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-white/[0.06] shrink-0">
+          <LogoMark />
+          <span
+            className="font-semibold text-[15px] tracking-tight"
+            style={{ color: 'var(--ds-text-on-dark)' }}
+          >
+            Datasphere
+          </span>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5" aria-label="Main navigation">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto" aria-label="Main">
+          <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
+            Workspace
+          </p>
           {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
+            <NavItem key={item.to} {...item} />
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400">IBM Challenge · v0.1.0</p>
+        <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
+          <p className="text-[11px] text-slate-500">IBM Challenge · v0.1.0</p>
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-10 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+      {/* ── Mobile top bar ────────────────────────── */}
+      <div
+        className="md:hidden fixed top-0 inset-x-0 z-20 flex items-center justify-between px-4 h-12 border-b border-white/[0.08]"
+        style={{ background: 'var(--ds-sidebar)' }}
+      >
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <span className="font-semibold text-gray-900 text-sm">Datasphere</span>
+          <LogoMark />
+          <span
+            className="font-semibold text-sm tracking-tight"
+            style={{ color: 'var(--ds-text-on-dark)' }}
+          >
+            Datasphere
+          </span>
         </div>
-        <nav className="flex gap-1" aria-label="Main navigation">
+        <nav className="flex gap-0.5" aria-label="Main navigation">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.end}
               className={({ isActive }) =>
-                `flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                [
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150',
                   isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`
+                    ? 'bg-[#3B5BDB] text-white'
+                    : 'text-slate-300 hover:bg-[#2A2F45] hover:text-white',
+                ].join(' ')
               }
             >
               {item.label}
@@ -93,8 +131,8 @@ export function AppLayout() {
         </nav>
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto md:pt-0 pt-14">
+      {/* ── Main content area ─────────────────────── */}
+      <main className="flex-1 overflow-y-auto md:pt-0 pt-12">
         <Outlet />
       </main>
     </div>

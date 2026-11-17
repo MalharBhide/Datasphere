@@ -1,1 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
 @import "tailwindcss";
+
+/* ── Datasphere Design Tokens ─────────────────────────────────────────────── */
+/* Source of truth: design-system/datasphere/MASTER.md                        */
+
+:root {
+  /* ── Fonts ─────────────────────────────────────── */
+  --ds-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --ds-font-mono: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+
+  /* ── Core palette ──────────────────────────────── */
+  --ds-primary:          #3B5BDB;
+  --ds-primary-hover:    #2F4AC7;
+  --ds-primary-light:    #EEF2FF;
+  --ds-primary-mid:      #C5D0FA;
+
+  /* ── Accent (emerald) ─────────────────────────── */
+  --ds-accent:           #0CA678;
+  --ds-accent-hover:     #099268;
+  --ds-accent-light:     #E6FCF5;
+
+  /* ── Warning (amber) ──────────────────────────── */
+  --ds-warning:          #E67700;
+  --ds-warning-light:    #FFF3CD;
+
+  /* ── Danger (red) ─────────────────────────────── */
+  --ds-danger:           #D63939;
+  --ds-danger-hover:     #C03030;
+  --ds-danger-light:     #FFE0E0;
+
+  /* ── Neutrals ─────────────────────────────────── */
+  --ds-bg:               #F8F9FB;
+  --ds-surface:          #FFFFFF;
+  --ds-sidebar:          #1E2130;
+  --ds-sidebar-hover:    #2A2F45;
+  --ds-sidebar-active:   #3B5BDB;
+
+  /* ── Text ─────────────────────────────────────── */
+  --ds-text-primary:     #0F172A;
+  --ds-text-secondary:   #475569;
+  --ds-text-muted:       #94A3B8;
+  --ds-text-on-dark:     #E2E8F0;
+  --ds-text-on-primary:  #FFFFFF;
+
+  /* ── Borders ──────────────────────────────────── */
+  --ds-border:           #E2E8F0;
+  --ds-border-strong:    #CBD5E1;
+  --ds-border-focus:     #3B5BDB;
+
+  /* ── Changed cell highlight ───────────────────── */
+  --ds-cell-changed:     #FFF9E6;
+  --ds-cell-changed-text:#92400E;
+
+  /* ── Shadows ──────────────────────────────────── */
+  --ds-shadow-sm:   0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ds-shadow-md:   0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+  --ds-shadow-lg:   0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -2px rgb(0 0 0 / 0.04);
+  --ds-shadow-card: 0 0 0 1px var(--ds-border), 0 1px 3px 0 rgb(0 0 0 / 0.05);
+}
+
+/* ── Global base styles ───────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--ds-font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ds-text-primary);
+  background-color: var(--ds-bg);
+  margin: 0;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Focus ring ───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--ds-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar (webkit) ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ds-border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-text-muted);
+}

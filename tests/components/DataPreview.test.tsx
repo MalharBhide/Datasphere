@@ -23,8 +23,8 @@ describe('DataPreview', () => {
   it('renders column headers', () => {
     const ds = makeDataset(3)
     render(<DataPreview dataset={ds} />)
-    expect(screen.getByText('id')).toBeInTheDocument()
-    expect(screen.getByText('name')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /\bid\b/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /\bname\b/i })).toBeInTheDocument()
   })
 
   it('filters rows by search term without changing the dataset', () => {
@@ -38,7 +38,7 @@ describe('DataPreview', () => {
     // The underlying dataset is unchanged — still shows 10 rows in stats
     expect(screen.getByText(/10 rows/)).toBeInTheDocument()
     // Shows matching filter count
-    expect(screen.getByText(/1 matching filter/)).toBeInTheDocument()
+    expect(screen.getByText(/1 matching/)).toBeInTheDocument()
   })
 
   it('resets to page 1 when filter changes', () => {
@@ -52,7 +52,7 @@ describe('DataPreview', () => {
   it('sorts rows when clicking a column header (display only)', () => {
     const ds = makeDataset(3)
     render(<DataPreview dataset={ds} />)
-    const idHeader = screen.getByText('id')
+    const idHeader = screen.getByRole('columnheader', { name: /\bid\b/i })
     // Click once — ascending
     fireEvent.click(idHeader)
     // The underlying dataset should still report 3 rows
@@ -62,12 +62,12 @@ describe('DataPreview', () => {
   it('shows pagination for datasets larger than 100 rows', () => {
     const ds = makeDataset(150)
     render(<DataPreview dataset={ds} />)
-    expect(screen.getByText(/Page 1 of 2/)).toBeInTheDocument()
+    expect(screen.getByText(/1 \/ 2/)).toBeInTheDocument()
   })
 
   it('does not show pagination for small datasets', () => {
     const ds = makeDataset(5)
     render(<DataPreview dataset={ds} />)
-    expect(screen.queryByText(/Page \d+ of \d+/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument()
   })
 })

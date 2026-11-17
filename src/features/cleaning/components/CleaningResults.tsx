@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pagination } from '../../../components/Pagination'
 import { Button } from '../../../components/Button'
+import { Card } from '../../../components/Card'
 import type { CleaningResult, ParsedDataset, CellValue } from '../types'
 
 const PAGE_SIZE = 100
@@ -29,172 +30,229 @@ export function CleaningResults({
   const columns = originalDataset.columns
   const originalRows = originalDataset.rows
   const cleanedRows = result.cleanedRows
-
   const rowDelta = result.finalRowCount - result.originalRowCount
-
-  // For the side-by-side view, use the max row count
   const maxRows = Math.max(originalRows.length, cleanedRows.length)
   const totalPages = Math.max(1, Math.ceil(maxRows / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
 
-  const origPageRows = originalRows.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  )
-  const cleanPageRows = cleanedRows.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  )
+  const origPageRows = originalRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const cleanPageRows = cleanedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   function isCellChanged(rowIdx: number, col: string): boolean {
-    // changedCells uses original row indices for non-dup-removed ops,
-    // but after dup removal indices shift. We store absolute cleaned indices.
     return result.changedCells.has(`${rowIdx}:${col}`)
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ── Page header ────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-800">Cleaning Results</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h2
+            className="text-[17px] font-semibold"
+            style={{ color: 'var(--ds-text-primary)' }}
+          >
+            Cleaning Results
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--ds-text-secondary)' }}>
             Review changes before downloading the cleaned file.
           </p>
         </div>
         <button
           onClick={onReset}
-          className="text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2"
+          className="text-sm cursor-pointer transition-colors duration-150"
+          style={{ color: 'var(--ds-text-muted)' }}
         >
           ← Start over
         </button>
       </div>
 
-      {/* Summary cards */}
+      {/* ── Stats row ──────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Row counts */}
-        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Rows</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-gray-900">
+        {/* Rows card */}
+        <Card padding="md">
+          <p
+            className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--ds-text-muted)' }}
+          >
+            Rows
+          </p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: 'var(--ds-text-primary)' }}>
               {result.finalRowCount.toLocaleString()}
             </span>
             {rowDelta < 0 && (
-              <span className="text-sm font-medium text-orange-600">
+              <span className="text-sm font-semibold" style={{ color: 'var(--ds-warning)' }}>
                 −{Math.abs(rowDelta)} removed
               </span>
             )}
             {rowDelta === 0 && (
-              <span className="text-sm text-gray-400">unchanged</span>
+              <span className="text-sm" style={{ color: 'var(--ds-text-muted)' }}>unchanged</span>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ds-text-muted)' }}>
             was {result.originalRowCount.toLocaleString()}
           </p>
-        </div>
+        </Card>
 
-        {/* Cells changed */}
-        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cells Changed</p>
-          <div className="mt-1">
-            <span className="text-2xl font-bold text-gray-900">
-              {result.changedCells.size.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-xs text-gray-400 mt-0.5">values modified</p>
-        </div>
+        {/* Cells changed card */}
+        <Card padding="md">
+          <p
+            className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--ds-text-muted)' }}
+          >
+            Cells Changed
+          </p>
+          <span className="text-2xl font-bold tabular-nums" style={{ color: 'var(--ds-text-primary)' }}>
+            {result.changedCells.size.toLocaleString()}
+          </span>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ds-text-muted)' }}>values modified</p>
+        </Card>
 
-        {/* Operations applied */}
-        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Operations</p>
-          <div className="mt-1">
-            <span className="text-2xl font-bold text-gray-900">
-              {result.changeSummary.length}
-            </span>
-          </div>
-          <p className="text-xs text-gray-400 mt-0.5">applied</p>
-        </div>
+        {/* Operations card */}
+        <Card padding="md">
+          <p
+            className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--ds-text-muted)' }}
+          >
+            Operations
+          </p>
+          <span className="text-2xl font-bold tabular-nums" style={{ color: 'var(--ds-text-primary)' }}>
+            {result.changeSummary.length}
+          </span>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ds-text-muted)' }}>applied</p>
+        </Card>
       </div>
 
-      {/* Change summary list */}
+      {/* ── Change summary list ─────────────────────── */}
       {result.changeSummary.length > 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
-          {result.changeSummary.map((item, i) => (
-            <div key={i} className="flex items-center justify-between px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" aria-hidden="true" />
-                <span className="text-sm font-medium text-gray-700">{item.operation}</span>
-                <span className="text-sm text-gray-500">{item.description}</span>
+        <Card padding="none">
+          <div className="divide-y" style={{ borderColor: 'var(--ds-border)' }}>
+            {result.changeSummary.map((item, i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: 'var(--ds-primary)' }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-[13px] font-semibold" style={{ color: 'var(--ds-text-primary)' }}>
+                    {item.operation}
+                  </span>
+                  <span className="text-[13px]" style={{ color: 'var(--ds-text-secondary)' }}>
+                    {item.description}
+                  </span>
+                </div>
+                <span
+                  className="tabular-nums text-[13px] font-semibold"
+                  style={{ color: 'var(--ds-primary)' }}
+                >
+                  {item.count.toLocaleString()}
+                </span>
               </div>
-              <span className="tabular-nums text-sm font-semibold text-blue-700">
-                {item.count.toLocaleString()}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Card>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm text-gray-500 text-center">
-          No data was modified by the selected operations.
-        </div>
+        <Card padding="md">
+          <p className="text-sm text-center" style={{ color: 'var(--ds-text-muted)' }}>
+            No data was modified by the selected operations.
+          </p>
+        </Card>
       )}
 
-      {/* Download */}
-      <div className="rounded-xl border border-blue-100 bg-blue-50 px-5 py-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Download Cleaned File</h3>
+      {/* ── Download section ───────────────────────── */}
+      <div
+        className="rounded-xl p-5"
+        style={{
+          background: 'var(--ds-primary-light)',
+          border: '1px solid var(--ds-primary-mid)',
+        }}
+      >
+        <h3 className="text-[13px] font-semibold mb-3" style={{ color: 'var(--ds-text-primary)' }}>
+          Download Cleaned File
+        </h3>
         <div className="flex flex-wrap gap-3">
-          <Button variant="primary" size="sm" onClick={onExportCSV}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <Button size="sm" onClick={onExportCSV}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
             Download as CSV
           </Button>
           <Button variant="secondary" size="sm" onClick={onExportXLSX}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
             Download as XLSX
           </Button>
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          Exported XLSX contains only the cleaned data sheet. Original formatting and additional
-          worksheets are not preserved.
+        <p className="mt-2.5 text-xs" style={{ color: 'var(--ds-text-secondary)' }}>
+          Exported XLSX contains only the cleaned data sheet. Original formatting and
+          additional worksheets are not preserved.
         </p>
       </div>
 
-      {/* Before / After comparison */}
+      {/* ── Before / After comparison ───────────────── */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Before / After Comparison</h3>
+        <h3 className="text-[13px] font-semibold mb-3" style={{ color: 'var(--ds-text-primary)' }}>
+          Before / After Comparison
+        </h3>
+
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {/* Before */}
           <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-gray-400" aria-hidden="true" />
+            <p
+              className="text-xs font-medium mb-2 flex items-center gap-1.5"
+              style={{ color: 'var(--ds-text-secondary)' }}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ background: '#94A3B8' }}
+                aria-hidden="true"
+              />
               Before ({result.originalRowCount.toLocaleString()} rows)
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+            <div
+              className="overflow-x-auto rounded-xl border"
+              style={{ borderColor: 'var(--ds-border)', background: 'var(--ds-surface)' }}
+            >
               <table className="min-w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-2 py-1.5 text-left text-gray-400 w-8">#</th>
+                  <tr className="border-b" style={{ background: '#F8F9FB', borderColor: 'var(--ds-border-strong)' }}>
+                    <th className="px-2.5 py-2 text-left w-8" style={{ color: 'var(--ds-text-muted)', fontSize: '11px' }}>#</th>
                     {columns.map((col) => (
-                      <th key={col} className="px-2 py-1.5 text-left text-gray-500 whitespace-nowrap font-medium">
+                      <th
+                        key={col}
+                        className="px-2.5 py-2 text-left whitespace-nowrap"
+                        style={{
+                          color: 'var(--ds-text-secondary)',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y" style={{ borderColor: 'var(--ds-border)' }}>
                   {origPageRows.map((row, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-2 py-1 text-gray-300 tabular-nums">
+                    <tr key={i} className="hover:bg-[#F8FAFF] transition-colors">
+                      <td className="px-2.5 py-1.5 tabular-nums" style={{ color: 'var(--ds-text-muted)', fontSize: '11px' }}>
                         {(safePage - 1) * PAGE_SIZE + i + 1}
                       </td>
                       {columns.map((col) => (
                         <td
                           key={col}
-                          className={`px-2 py-1 max-w-[120px] truncate ${
-                            row[col] === null ? 'text-gray-300 italic' : 'text-gray-600'
-                          }`}
+                          className="px-2.5 py-1.5 max-w-[120px] truncate"
+                          style={{
+                            color: row[col] === null ? 'var(--ds-text-muted)' : 'var(--ds-text-primary)',
+                            fontFamily: 'var(--ds-font-mono)',
+                            fontSize: '12px',
+                            fontStyle: row[col] === null ? 'italic' : 'normal',
+                          }}
                           title={cellStr(row[col])}
                         >
                           {row[col] === null ? 'null' : cellStr(row[col])}
@@ -209,29 +267,51 @@ export function CleaningResults({
 
           {/* After */}
           <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500" aria-hidden="true" />
+            <p
+              className="text-xs font-medium mb-2 flex items-center gap-1.5"
+              style={{ color: 'var(--ds-text-secondary)' }}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ background: 'var(--ds-accent)' }}
+                aria-hidden="true"
+              />
               After ({result.finalRowCount.toLocaleString()} rows)
-              <span className="ml-1 text-gray-400">· highlighted cells changed</span>
+              <span style={{ color: 'var(--ds-text-muted)', marginLeft: '2px' }}>
+                · highlighted cells changed
+              </span>
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+            <div
+              className="overflow-x-auto rounded-xl border"
+              style={{ borderColor: 'var(--ds-border)', background: 'var(--ds-surface)' }}
+            >
               <table className="min-w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-2 py-1.5 text-left text-gray-400 w-8">#</th>
+                  <tr className="border-b" style={{ background: '#F8F9FB', borderColor: 'var(--ds-border-strong)' }}>
+                    <th className="px-2.5 py-2 text-left w-8" style={{ color: 'var(--ds-text-muted)', fontSize: '11px' }}>#</th>
                     {columns.map((col) => (
-                      <th key={col} className="px-2 py-1.5 text-left text-gray-500 whitespace-nowrap font-medium">
+                      <th
+                        key={col}
+                        className="px-2.5 py-2 text-left whitespace-nowrap"
+                        style={{
+                          color: 'var(--ds-text-secondary)',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y" style={{ borderColor: 'var(--ds-border)' }}>
                   {cleanPageRows.map((row, i) => {
                     const absIdx = (safePage - 1) * PAGE_SIZE + i
                     return (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-2 py-1 text-gray-300 tabular-nums">
+                      <tr key={i} className="hover:bg-[#F8FAFF] transition-colors">
+                        <td className="px-2.5 py-1.5 tabular-nums" style={{ color: 'var(--ds-text-muted)', fontSize: '11px' }}>
                           {absIdx + 1}
                         </td>
                         {columns.map((col) => {
@@ -239,13 +319,19 @@ export function CleaningResults({
                           return (
                             <td
                               key={col}
-                              className={`px-2 py-1 max-w-[120px] truncate ${
-                                changed
-                                  ? 'bg-yellow-50 text-yellow-800 font-medium'
+                              className="px-2.5 py-1.5 max-w-[120px] truncate"
+                              style={{
+                                background: changed ? 'var(--ds-cell-changed)' : undefined,
+                                color: changed
+                                  ? 'var(--ds-cell-changed-text)'
                                   : row[col] === null
-                                  ? 'text-gray-300 italic'
-                                  : 'text-gray-600'
-                              }`}
+                                  ? 'var(--ds-text-muted)'
+                                  : 'var(--ds-text-primary)',
+                                fontFamily: 'var(--ds-font-mono)',
+                                fontSize: '12px',
+                                fontWeight: changed ? 500 : 400,
+                                fontStyle: row[col] === null && !changed ? 'italic' : 'normal',
+                              }}
                               title={cellStr(row[col])}
                             >
                               {row[col] === null ? 'null' : cellStr(row[col])}
@@ -262,10 +348,9 @@ export function CleaningResults({
         </div>
 
         {/* Shared pagination */}
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-xs text-gray-400">
-            Showing rows {Math.min((safePage - 1) * PAGE_SIZE + 1, maxRows)}–
-            {Math.min(safePage * PAGE_SIZE, maxRows)} of {maxRows.toLocaleString()}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <p className="text-xs" style={{ color: 'var(--ds-text-muted)' }}>
+            {maxRows === 0 ? '' : `Rows ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, maxRows)} of ${maxRows.toLocaleString()}`}
           </p>
           <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setPage} />
         </div>

@@ -8,22 +8,24 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-600">
+    <div className="flex items-center gap-1">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
-        className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center justify-center h-7 w-7 rounded text-[13px] text-[#475569] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
         aria-label="Previous page"
       >
         ←
       </button>
-      <span className="tabular-nums">
-        Page {currentPage} of {totalPages}
+
+      <span className="px-3 py-1 text-[13px] text-[#475569] tabular-nums select-none">
+        {currentPage} / {totalPages}
       </span>
+
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
-        className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center justify-center h-7 w-7 rounded text-[13px] text-[#475569] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
         aria-label="Next page"
       >
         →
