@@ -84,6 +84,9 @@ const issueConfig: Record<IssueKind, IssueConfig> = {
   },
 }
 
+// IDs that belong to the mutually exclusive fill-strategy group.
+const FILL_ACTION_IDS = new Set(['fill_median', 'fill_mean', 'fill_custom'])
+
 // ── IssuePanel component ───────────────────────────────────────────────────
 
 export function IssuePanel({
@@ -132,6 +135,9 @@ export function IssuePanel({
     return selectedOps.find((op) => op.action.id === actionId)
   }
 
+  /**
+   * Toggle a non-fill action on/off (standard checkbox behaviour).
+   */
   function toggleOp(issue: DetectedIssue, actionIndex: number) {
     const action = issue.availableActions[actionIndex]
     const existing = getOp(action.id)
@@ -144,6 +150,45 @@ export function IssuePanel({
     } else {
       onOperationsChange([...selectedOps, { action, enabled: true }])
     }
+  }
+
+  /**
+   * Select a fill strategy action — enforces mutual exclusion by disabling all
+   * other fill actions in the same issue before enabling the chosen one.
+   * If the chosen action is already enabled, clicking it disables it (deselect).
+   */
+  function selectFillOp(issue: DetectedIssue, actionIndex: number) {
+    const chosen = issue.availableActions[actionIndex]
+    const siblingIds = new Set(
+      issue.availableActions
+        .filter((a) => FILL_ACTION_IDS.has(a.id))
+        .map((a) => a.id),
+    )
+    const chosenIsCurrentlyEnabled = isOpEnabled(chosen.id)
+
+    // Build the updated ops list:
+    //  • All siblings get disabled
+    //  • The chosen one toggles (enable if not currently enabled, disable if it was)
+    let updatedOps = selectedOps.map((op) => {
+      if (siblingIds.has(op.action.id)) {
+        return { ...op, enabled: op.action.id === chosen.id ? !chosenIsCurrentlyEnabled : false }
+      }
+      return op
+    })
+
+    // If the chosen action wasn't in selectedOps at all, add it
+    const chosenExists = selectedOps.some((op) => op.action.id === chosen.id)
+    if (!chosenExists) {
+      // Also ensure all existing siblings are disabled
+      updatedOps = updatedOps.map((op) =>
+        siblingIds.has(op.action.id) && op.action.id !== chosen.id
+          ? { ...op, enabled: false }
+          : op,
+      )
+      updatedOps = [...updatedOps, { action: chosen, enabled: true }]
+    }
+
+    onOperationsChange(updatedOps)
   }
 
   function updateOpParam(
@@ -159,7 +204,16 @@ export function IssuePanel({
     )
   }
 
+  // ── Validation ─────────────────────────────────────
+
+  // Determine whether the custom fill value is invalid (enabled but blank)
+  const customFillOp = getOp('fill_custom')
+  const customFillEnabled = isOpEnabled('fill_custom')
+  const customFillValue = customFillOp?.action.params?.customValue ?? ''
+  const customFillInvalid = customFillEnabled && customFillValue.trim() === ''
+
   const hasEnabled = selectedOps.some((op) => op.enabled)
+  const canClean = hasEnabled && !customFillInvalid
 
   return (
     <div className="space-y-4">
@@ -186,6 +240,9 @@ export function IssuePanel({
       {/* ── Issue cards ────────────────────────────── */}
       {issues.map((issue) => {
         const cfg = issueConfig[issue.kind]
+        // Determine if this issue uses mutually exclusive fill actions
+        const isFillIssue = issue.availableActions.some((a) => FILL_ACTION_IDS.has(a.id))
+
         return (
           <div
             key={issue.kind}
@@ -261,15 +318,28 @@ export function IssuePanel({
                   ) : (
                     <div className="mt-3.5 space-y-2.5">
                       {issue.availableActions.map((action, idx) => {
+                        const isFillAction = FILL_ACTION_IDS.has(action.id)
                         const enabled = isOpEnabled(action.id)
                         const op = getOp(action.id)
+
+                        // For fill actions: use radio-style mutual exclusion.
+                        // For all other actions: standard checkbox toggle.
+                        const handleToggle = isFillAction
+                          ? () => selectFillOp(issue, idx)
+                          : () => toggleOp(issue, idx)
+
+                        // Show custom fill value error only on the fill_custom action
+                        const showCustomError =
+                          action.id === 'fill_custom' && customFillInvalid
+
                         return (
                           <div key={action.id}>
                             <label className="flex items-center gap-2.5 cursor-pointer group">
                               <input
-                                type="checkbox"
+                                type={isFillIssue ? 'radio' : 'checkbox'}
+                                name={isFillIssue ? `fill-strategy-${issue.kind}` : undefined}
                                 checked={enabled}
-                                onChange={() => toggleOp(issue, idx)}
+                                onChange={handleToggle}
                                 className="w-4 h-4 rounded border-[#CBD5E1] text-[#3B5BDB] focus:ring-[#3B5BDB] cursor-pointer"
                                 aria-label={action.label}
                               />
@@ -281,51 +351,45 @@ export function IssuePanel({
                               </span>
                             </label>
 
-                            {/* Fill strategy controls */}
+                            {/* Fill strategy sub-controls (strategy selector lives on the action row itself,
+                                so only one is visible at a time thanks to mutual exclusion) */}
                             {enabled && action.params?.fillStrategy !== undefined && (
                               <div className="mt-2 ml-6.5 flex flex-wrap items-center gap-2">
-                                <label
-                                  htmlFor={`fill-strategy-${action.id}`}
-                                  className="text-xs"
-                                  style={{ color: 'var(--ds-text-muted)' }}
-                                >
-                                  Strategy:
-                                </label>
-                                <select
-                                  id={`fill-strategy-${action.id}`}
-                                  value={op?.action.params?.fillStrategy ?? 'median'}
-                                  onChange={(e) =>
-                                    updateOpParam(action.id, {
-                                      fillStrategy: e.target.value as 'median' | 'mean' | 'custom',
-                                    })
-                                  }
-                                  className="h-7 rounded-lg border px-2.5 text-xs cursor-pointer"
-                                  style={{
-                                    borderColor: 'var(--ds-border-strong)',
-                                    background: 'var(--ds-surface)',
-                                    color: 'var(--ds-text-primary)',
-                                  }}
-                                >
-                                  <option value="median">Median</option>
-                                  <option value="mean">Mean</option>
-                                  <option value="custom">Custom value</option>
-                                </select>
-                                {(op?.action.params?.fillStrategy ?? 'median') === 'custom' && (
-                                  <input
-                                    type="text"
-                                    placeholder="Enter value…"
-                                    value={op?.action.params?.customValue ?? ''}
-                                    onChange={(e) =>
-                                      updateOpParam(action.id, { customValue: e.target.value })
-                                    }
-                                    className="h-7 rounded-lg border px-2.5 text-xs w-32"
-                                    style={{
-                                      borderColor: 'var(--ds-border-strong)',
-                                      background: 'var(--ds-surface)',
-                                      color: 'var(--ds-text-primary)',
-                                    }}
-                                    aria-label="Custom fill value"
-                                  />
+                                {/* For fill_custom, show only the value input (strategy is implicit) */}
+                                {action.id === 'fill_custom' ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      placeholder="Enter value…"
+                                      value={op?.action.params?.customValue ?? ''}
+                                      onChange={(e) =>
+                                        updateOpParam(action.id, { customValue: e.target.value })
+                                      }
+                                      className="h-7 rounded-lg border px-2.5 text-xs w-36 transition-colors"
+                                      style={{
+                                        borderColor: showCustomError ? '#D63939' : 'var(--ds-border-strong)',
+                                        background: 'var(--ds-surface)',
+                                        color: 'var(--ds-text-primary)',
+                                      }}
+                                      aria-label="Custom fill value"
+                                      aria-invalid={showCustomError}
+                                      aria-describedby={showCustomError ? 'custom-fill-error' : undefined}
+                                    />
+                                    {showCustomError && (
+                                      <span
+                                        id="custom-fill-error"
+                                        role="alert"
+                                        className="text-xs font-medium"
+                                        style={{ color: '#D63939' }}
+                                      >
+                                        Enter a fill value.
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  /* For fill_median / fill_mean: no extra controls needed —
+                                     the strategy is implied by which action is selected. */
+                                  null
                                 )}
                               </div>
                             )}
@@ -378,7 +442,7 @@ export function IssuePanel({
         className="flex items-center gap-4 pt-2 pb-1"
         style={{ borderTop: '1px solid var(--ds-border)' }}
       >
-        <Button size="lg" onClick={onClean} disabled={!hasEnabled}>
+        <Button size="lg" onClick={onClean} disabled={!canClean}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
           </svg>
@@ -387,6 +451,11 @@ export function IssuePanel({
         {!hasEnabled && (
           <p className="text-xs" style={{ color: 'var(--ds-text-muted)' }}>
             Select at least one operation to proceed.
+          </p>
+        )}
+        {customFillInvalid && (
+          <p className="text-xs font-medium" style={{ color: '#D63939' }}>
+            Enter a custom fill value to proceed.
           </p>
         )}
       </div>

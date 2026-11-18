@@ -132,9 +132,12 @@ function fillMissingValues(
     let fillVal: CellValue
 
     if (strategy === 'custom') {
+      // Reject blank / whitespace-only custom values — nothing to fill with.
+      const trimmed = customValue.trim()
+      if (trimmed === '') continue
       // Try to parse as number, otherwise keep as string
-      const n = Number(customValue)
-      fillVal = customValue !== '' && isFinite(n) ? n : customValue
+      const n = Number(trimmed)
+      fillVal = isFinite(n) ? n : trimmed
     } else {
       // Collect numeric non-null values
       const nums = rows

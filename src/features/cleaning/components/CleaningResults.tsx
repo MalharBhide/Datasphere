@@ -10,6 +10,7 @@ interface CleaningResultsProps {
   result: CleaningResult
   originalDataset: ParsedDataset
   onReset: () => void
+  onEditSettings: () => void
   onExportCSV: () => void
   onExportXLSX: () => void
 }
@@ -23,6 +24,7 @@ export function CleaningResults({
   result,
   originalDataset,
   onReset,
+  onEditSettings,
   onExportCSV,
   onExportXLSX,
 }: CleaningResultsProps) {
@@ -58,13 +60,22 @@ export function CleaningResults({
             Review changes before downloading the cleaned file.
           </p>
         </div>
-        <button
-          onClick={onReset}
-          className="text-sm cursor-pointer transition-colors duration-150"
-          style={{ color: 'var(--ds-text-muted)' }}
-        >
-          ← Start over
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onEditSettings}
+            className="text-sm cursor-pointer transition-colors duration-150 font-medium"
+            style={{ color: 'var(--ds-primary)' }}
+          >
+            ← Edit settings
+          </button>
+          <button
+            onClick={onReset}
+            className="text-sm cursor-pointer transition-colors duration-150"
+            style={{ color: 'var(--ds-text-muted)' }}
+          >
+            Start over
+          </button>
+        </div>
       </div>
 
       {/* ── Stats row ──────────────────────────────── */}

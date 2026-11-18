@@ -80,7 +80,7 @@ describe('IssuePanel', () => {
     expect(onClean).toHaveBeenCalledOnce()
   })
 
-  it('shows fill strategy dropdown when a fill action is enabled', () => {
+  it('shows no extra controls when fill_median is enabled (strategy is implicit)', () => {
     const ops: SelectedOperation[] = [
       {
         action: { id: 'fill_median', label: 'Fill with median (numeric columns)', params: { fillStrategy: 'median' } },
@@ -88,8 +88,12 @@ describe('IssuePanel', () => {
       },
     ]
     renderPanel([missingValueIssue], ops)
-    // Strategy dropdown should be visible
-    expect(screen.getByLabelText(/Strategy/i)).toBeInTheDocument()
+    // With the new mutual-exclusion design, the strategy dropdown is gone.
+    // The active selection is shown by which radio is checked.
+    const medianRadio = screen.getByRole('radio', { name: /Fill with median/i })
+    expect(medianRadio).toBeChecked()
+    // No "Strategy:" label dropdown should appear
+    expect(screen.queryByLabelText(/Strategy/i)).not.toBeInTheDocument()
   })
 
   it('shows custom value input when strategy is custom', () => {
@@ -107,5 +111,102 @@ describe('IssuePanel', () => {
     const { onReset } = renderPanel([missingValueIssue])
     fireEvent.click(screen.getByText(/Change file/i))
     expect(onReset).toHaveBeenCalledOnce()
+  })
+
+  // ── Regression: Fix 1 — Mutually exclusive fill strategies ────────────────
+
+  it('enabling fill_median disables fill_mean when both are present', () => {
+    // Start with fill_mean enabled
+    const ops: SelectedOperation[] = [
+      { action: missingValueIssue.availableActions[0], enabled: false }, // fill_median
+      { action: missingValueIssue.availableActions[1], enabled: true },  // fill_mean
+      { action: missingValueIssue.availableActions[2], enabled: false }, // fill_custom
+    ]
+    const { onOpsChange } = renderPanel([missingValueIssue], ops)
+
+    // Click the fill_median radio
+    const medianRadio = screen.getByRole('radio', { name: /Fill with median/i })
+    fireEvent.click(medianRadio)
+
+    const updated: SelectedOperation[] = onOpsChange.mock.calls[0][0]
+    const meanOp = updated.find((op) => op.action.id === 'fill_mean')
+    const medianOp = updated.find((op) => op.action.id === 'fill_median')
+    expect(medianOp?.enabled).toBe(true)
+    expect(meanOp?.enabled).toBe(false)
+  })
+
+  it('enabling fill_custom disables fill_median', () => {
+    const ops: SelectedOperation[] = [
+      { action: missingValueIssue.availableActions[0], enabled: true },  // fill_median
+      { action: missingValueIssue.availableActions[1], enabled: false }, // fill_mean
+      { action: missingValueIssue.availableActions[2], enabled: false }, // fill_custom
+    ]
+    const { onOpsChange } = renderPanel([missingValueIssue], ops)
+
+    const customRadio = screen.getByRole('radio', { name: /Fill with custom value/i })
+    fireEvent.click(customRadio)
+
+    const updated: SelectedOperation[] = onOpsChange.mock.calls[0][0]
+    const medianOp = updated.find((op) => op.action.id === 'fill_median')
+    const customOp = updated.find((op) => op.action.id === 'fill_custom')
+    expect(customOp?.enabled).toBe(true)
+    expect(medianOp?.enabled).toBe(false)
+  })
+
+  it('fill actions render as radio buttons, not checkboxes', () => {
+    renderPanel([missingValueIssue], [])
+    const radios = screen.getAllByRole('radio')
+    // All three fill actions should be radio buttons
+    expect(radios.length).toBeGreaterThanOrEqual(3)
+  })
+
+  // ── Regression: Fix 2 — Custom fill value validation ──────────────────────
+
+  it('"Clean Dataset" is disabled when fill_custom is enabled but value is blank', () => {
+    const ops: SelectedOperation[] = [
+      {
+        action: { id: 'fill_custom', label: 'Fill with custom value', params: { fillStrategy: 'custom', customValue: '' } },
+        enabled: true,
+      },
+    ]
+    renderPanel([missingValueIssue], ops)
+    const btn = screen.getByRole('button', { name: /Clean Dataset/i })
+    expect(btn).toBeDisabled()
+  })
+
+  it('"Clean Dataset" is disabled when fill_custom value is whitespace only', () => {
+    const ops: SelectedOperation[] = [
+      {
+        action: { id: 'fill_custom', label: 'Fill with custom value', params: { fillStrategy: 'custom', customValue: '   ' } },
+        enabled: true,
+      },
+    ]
+    renderPanel([missingValueIssue], ops)
+    const btn = screen.getByRole('button', { name: /Clean Dataset/i })
+    expect(btn).toBeDisabled()
+  })
+
+  it('"Clean Dataset" is enabled when fill_custom has value "0"', () => {
+    const ops: SelectedOperation[] = [
+      {
+        action: { id: 'fill_custom', label: 'Fill with custom value', params: { fillStrategy: 'custom', customValue: '0' } },
+        enabled: true,
+      },
+    ]
+    renderPanel([missingValueIssue], ops)
+    const btn = screen.getByRole('button', { name: /Clean Dataset/i })
+    expect(btn).not.toBeDisabled()
+  })
+
+  it('shows inline error when fill_custom is enabled but blank', () => {
+    const ops: SelectedOperation[] = [
+      {
+        action: { id: 'fill_custom', label: 'Fill with custom value', params: { fillStrategy: 'custom', customValue: '' } },
+        enabled: true,
+      },
+    ]
+    renderPanel([missingValueIssue], ops)
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/Enter a fill value/i)
   })
 })

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { UploadZone } from '../features/cleaning/components/UploadZone'
 import { DataPreview } from '../features/cleaning/components/DataPreview'
 import { IssuePanel } from '../features/cleaning/components/IssuePanel'
@@ -8,25 +8,23 @@ import { analyzeDataset } from '../features/cleaning/lib/detector'
 import { applyCleaningOperations } from '../features/cleaning/lib/cleaner'
 import { exportAsCSV, exportAsXLSX } from '../features/cleaning/lib/exporter'
 import { sampleDataset } from '../data/sampleDataset'
-import type {
-  ParsedDataset,
-  DetectedIssue,
-  SelectedOperation,
-  CleaningResult,
-} from '../features/cleaning/types'
+import { useCleaningSession } from '../contexts/CleaningSessionContext'
+import type { SelectedOperation } from '../features/cleaning/types'
 import { Button } from '../components/Button'
 
-type Step = 'upload' | 'preview' | 'clean' | 'results'
-
-const stepLabels: Record<Exclude<Step, 'upload'>, string> = {
+const stepLabels: Record<Exclude<'upload' | 'preview' | 'clean' | 'results', 'upload'>, string> = {
   preview: 'Preview',
   clean: 'Detect & Clean',
   results: 'Results',
 }
 
-const stepOrder: Exclude<Step, 'upload'>[] = ['preview', 'clean', 'results']
+const stepOrder: Exclude<'upload' | 'preview' | 'clean' | 'results', 'upload'>[] = [
+  'preview',
+  'clean',
+  'results',
+]
 
-function StepIndicator({ currentStep }: { currentStep: Step }) {
+function StepIndicator({ currentStep }: { currentStep: 'upload' | 'preview' | 'clean' | 'results' }) {
   if (currentStep === 'upload') return null
   return (
     <div className="flex items-center gap-1 mb-6">
@@ -74,67 +72,56 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
 }
 
 export function DataCleaningPage() {
-  const [step, setStep] = useState<Step>('upload')
-  const [dataset, setDataset] = useState<ParsedDataset | null>(null)
-  const [issues, setIssues] = useState<DetectedIssue[]>([])
-  const [selectedOps, setSelectedOps] = useState<SelectedOperation[]>([])
-  const [cleaningResult, setCleaningResult] = useState<CleaningResult | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const fileRef = useRef<File | null>(null)
+  const { session, setSession, resetSession, fileRef } = useCleaningSession()
+  const { step, dataset, issues, selectedOps, cleaningResult, isLoading, error } = session
 
   // ── Upload ──────────────────────────────────────────────────────────────────
 
   const handleFileSelected = useCallback(async (file: File) => {
-    setIsLoading(true)
-    setError(null)
+    setSession({ isLoading: true, error: null })
     fileRef.current = file
     try {
       const parsed = await parseFile(file)
-      setDataset(parsed)
-      setStep('preview')
+      setSession({ dataset: parsed, step: 'preview', isLoading: false })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse file.')
-    } finally {
-      setIsLoading(false)
+      setSession({
+        error: err instanceof Error ? err.message : 'Failed to parse file.',
+        isLoading: false,
+      })
     }
-  }, [])
+  }, [setSession, fileRef])
 
   const handleSampleRequested = useCallback(() => {
     fileRef.current = null
-    setDataset(sampleDataset)
-    setError(null)
-    setStep('preview')
-  }, [])
+    setSession({ dataset: sampleDataset, error: null, step: 'preview' })
+  }, [setSession, fileRef])
 
   const handleSheetChange = useCallback(async (sheetName: string) => {
     if (!fileRef.current) return
-    setIsLoading(true)
-    setError(null)
+    setSession({ isLoading: true, error: null })
     try {
       const parsed = await parseXLSX(fileRef.current, sheetName)
-      setDataset(parsed)
+      setSession({ dataset: parsed, isLoading: false })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sheet.')
-    } finally {
-      setIsLoading(false)
+      setSession({
+        error: err instanceof Error ? err.message : 'Failed to load sheet.',
+        isLoading: false,
+      })
     }
-  }, [])
+  }, [setSession, fileRef])
 
   // ── Detect ──────────────────────────────────────────────────────────────────
 
   function handleAnalyze() {
     if (!dataset) return
     const detected = analyzeDataset(dataset)
-    setIssues(detected)
     const ops: SelectedOperation[] = []
     for (const issue of detected) {
       for (const action of issue.availableActions) {
         ops.push({ action, enabled: false })
       }
     }
-    setSelectedOps(ops)
-    setStep('clean')
+    setSession({ issues: detected, selectedOps: ops, step: 'clean' })
   }
 
   // ── Clean ───────────────────────────────────────────────────────────────────
@@ -142,8 +129,15 @@ export function DataCleaningPage() {
   function handleClean() {
     if (!dataset) return
     const result = applyCleaningOperations(dataset, selectedOps)
-    setCleaningResult(result)
-    setStep('results')
+    setSession({ cleaningResult: result, step: 'results' })
+  }
+
+  // ── Edit settings (back from results to clean step) ─────────────────────────
+
+  function handleEditSettings() {
+    // Return to the cleaning step — dataset and selectedOps are already preserved.
+    // cleaningResult is cleared so the UI shows the issue panel, not stale results.
+    setSession({ step: 'clean', cleaningResult: null })
   }
 
   // ── Export ──────────────────────────────────────────────────────────────────
@@ -161,13 +155,7 @@ export function DataCleaningPage() {
   // ── Reset ───────────────────────────────────────────────────────────────────
 
   function handleReset() {
-    setStep('upload')
-    setDataset(null)
-    setIssues([])
-    setSelectedOps([])
-    setCleaningResult(null)
-    setError(null)
-    fileRef.current = null
+    resetSession()
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -236,7 +224,7 @@ export function DataCleaningPage() {
         <IssuePanel
           issues={issues}
           selectedOps={selectedOps}
-          onOperationsChange={setSelectedOps}
+          onOperationsChange={(ops) => setSession({ selectedOps: ops })}
           onClean={handleClean}
           onReset={handleReset}
         />
@@ -248,6 +236,7 @@ export function DataCleaningPage() {
           result={cleaningResult}
           originalDataset={dataset}
           onReset={handleReset}
+          onEditSettings={handleEditSettings}
           onExportCSV={handleExportCSV}
           onExportXLSX={handleExportXLSX}
         />

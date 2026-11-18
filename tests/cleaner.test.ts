@@ -190,3 +190,57 @@ describe('combined operations', () => {
     expect(result.cleanedRows[0].name).toBe('  hello  ')
   })
 })
+
+// ── Regression: Fix 2 — Custom fill value validation ──────────────────────────
+
+describe('fill missing values — custom value edge cases', () => {
+  it('does NOT fill when customValue is an empty string', () => {
+    const ds = makeDataset(['v'], [{ v: null }])
+    const result = applyCleaningOperations(ds, [
+      op('fill_custom', { fillStrategy: 'custom', customValue: '' }),
+    ])
+    // No fill should happen — null remains
+    expect(result.cleanedRows[0].v).toBeNull()
+    expect(result.changeSummary).toHaveLength(0)
+  })
+
+  it('does NOT fill when customValue is whitespace only', () => {
+    const ds = makeDataset(['v'], [{ v: null }])
+    const result = applyCleaningOperations(ds, [
+      op('fill_custom', { fillStrategy: 'custom', customValue: '   ' }),
+    ])
+    expect(result.cleanedRows[0].v).toBeNull()
+    expect(result.changeSummary).toHaveLength(0)
+  })
+
+  it('fills with numeric 0 when customValue is "0"', () => {
+    const ds = makeDataset(['v'], [{ v: null }, { v: null }])
+    const result = applyCleaningOperations(ds, [
+      op('fill_custom', { fillStrategy: 'custom', customValue: '0' }),
+    ])
+    expect(result.cleanedRows[0].v).toBe(0)
+    expect(result.cleanedRows[1].v).toBe(0)
+    expect(result.changeSummary[0].count).toBe(2)
+  })
+
+  it('fills with string value and reports correct change count', () => {
+    const ds = makeDataset(['status'], [{ status: null }, { status: 'active' }, { status: null }])
+    const result = applyCleaningOperations(ds, [
+      op('fill_custom', { fillStrategy: 'custom', customValue: 'unknown' }),
+    ])
+    expect(result.cleanedRows[0].status).toBe('unknown')
+    expect(result.cleanedRows[1].status).toBe('active') // unchanged
+    expect(result.cleanedRows[2].status).toBe('unknown')
+    expect(result.changeSummary[0].count).toBe(2)
+  })
+
+  it('trims the customValue before using it', () => {
+    // "  42  " should fill as the number 42 after trimming
+    const ds = makeDataset(['score'], [{ score: null }])
+    const result = applyCleaningOperations(ds, [
+      op('fill_custom', { fillStrategy: 'custom', customValue: '  42  ' }),
+    ])
+    expect(result.cleanedRows[0].score).toBe(42)
+  })
+})
+

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { CleaningResults } from '../../src/features/cleaning/components/CleaningResults'
 import type { CleaningResult, ParsedDataset } from '../../src/features/cleaning/types'
 
@@ -38,92 +38,72 @@ const mockResult: CleaningResult = {
   changedCells: new Set(['0:name', '0:age', '1:age']),
 }
 
+function renderResults(overrides?: Partial<Parameters<typeof CleaningResults>[0]>) {
+  const defaults = {
+    result: mockResult,
+    originalDataset,
+    onReset: vi.fn(),
+    onEditSettings: vi.fn(),
+    onExportCSV: vi.fn(),
+    onExportXLSX: vi.fn(),
+  }
+  return render(<CleaningResults {...defaults} {...overrides} />)
+}
+
 describe('CleaningResults', () => {
   it('shows the correct operation count in summary cards', () => {
-    render(
-      <CleaningResults
-        result={mockResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
-    // The "Operations" card label must exist alongside the count
+    renderResults()
     expect(screen.getByText('Operations')).toBeInTheDocument()
-    // The "applied" label below the count confirms the operations card rendered
     expect(screen.getByText('applied')).toBeInTheDocument()
   })
 
   it('shows each operation in the change summary', () => {
-    render(
-      <CleaningResults
-        result={mockResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
+    renderResults()
     expect(screen.getByText('Trim Whitespace')).toBeInTheDocument()
     expect(screen.getByText('Convert Numeric Text')).toBeInTheDocument()
   })
 
   it('renders download CSV and XLSX buttons', () => {
-    render(
-      <CleaningResults
-        result={mockResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
+    renderResults()
     expect(screen.getByRole('button', { name: /Download as CSV/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Download as XLSX/i })).toBeInTheDocument()
   })
 
   it('shows the XLSX limitation notice', () => {
-    render(
-      <CleaningResults
-        result={mockResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
+    renderResults()
     expect(screen.getByText(/Original formatting/i)).toBeInTheDocument()
   })
 
   it('shows original and final row counts', () => {
-    render(
-      <CleaningResults
-        result={mockResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
+    renderResults()
     expect(screen.getByText(/was 2/i)).toBeInTheDocument()
   })
 
   it('shows "no data was modified" when summary is empty', () => {
-    const emptyResult: CleaningResult = {
-      ...mockResult,
-      changeSummary: [],
-      changedCells: new Set(),
-    }
-    render(
-      <CleaningResults
-        result={emptyResult}
-        originalDataset={originalDataset}
-        onReset={vi.fn()}
-        onExportCSV={vi.fn()}
-        onExportXLSX={vi.fn()}
-      />,
-    )
+    renderResults({
+      result: { ...mockResult, changeSummary: [], changedCells: new Set() },
+    })
     expect(screen.getByText(/No data was modified/i)).toBeInTheDocument()
+  })
+
+  // ── Regression: Fix 3 — Edit settings back-navigation ─────────────────────
+
+  it('renders "Edit settings" button', () => {
+    renderResults()
+    expect(screen.getByRole('button', { name: /Edit settings/i })).toBeInTheDocument()
+  })
+
+  it('calls onEditSettings when "Edit settings" is clicked', () => {
+    const onEditSettings = vi.fn()
+    renderResults({ onEditSettings })
+    fireEvent.click(screen.getByRole('button', { name: /Edit settings/i }))
+    expect(onEditSettings).toHaveBeenCalledOnce()
+  })
+
+  it('calls onReset when "Start over" is clicked', () => {
+    const onReset = vi.fn()
+    renderResults({ onReset })
+    fireEvent.click(screen.getByRole('button', { name: /Start over/i }))
+    expect(onReset).toHaveBeenCalledOnce()
   })
 })
