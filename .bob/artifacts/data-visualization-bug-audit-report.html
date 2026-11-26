@@ -1,0 +1,310 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Data Visualization — Bug Audit Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .meta { color: #57606a; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 28px 0 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-box {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-box .num { font-size: 26px; font-weight: 700; }
+  .stat-box .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+  .stat-box.green .num { color: #0ca678; }
+  .stat-box.red .num { color: #d63939; }
+  .stat-box.blue .num { color: #3b82d4; }
+  .stat-box.orange .num { color: #e67700; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #57606a;
+  }
+  tbody td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) td { background: #fafafa; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-fixed   { background: #d1fae5; color: #065f46; }
+  .badge-noissue { background: #e0f2fe; color: #0369a1; }
+  .badge-noted   { background: #fef9c3; color: #854d0e; }
+
+  .sev-critical { color: #d63939; font-weight: 700; }
+  .sev-high     { color: #e67700; font-weight: 600; }
+  .sev-medium   { color: #0ca678; font-weight: 600; }
+  .sev-low      { color: #57606a; }
+
+  .file-pill {
+    display: inline-block;
+    background: #f1f5f9;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: "Courier New", monospace;
+    font-size: 11.5px;
+    color: #334155;
+  }
+  .change-block {
+    background: #f7f8fa;
+    border-left: 3px solid #3b82d4;
+    padding: 10px 14px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #334155;
+  }
+  .change-block code {
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    background: #e5e7eb;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  .tests-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-top: 24px;
+    font-size: 13px;
+  }
+  .tests-box strong { color: #065f46; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Data Visualization — Bug Audit Report</h1>
+  <div class="meta">Audit date: 2026-11-17  ·  Branch: main  ·  Scope: <code>src/features/visualization/</code>, <code>src/pages/DataVisualizationPage.tsx</code></div>
+
+  <div class="summary-grid">
+    <div class="stat-box red">
+      <div class="num">4</div>
+      <div class="lbl">Bugs Fixed</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="num">1</div>
+      <div class="lbl">Confirmed Non-Issue</div>
+    </div>
+    <div class="stat-box orange">
+      <div class="num">2</div>
+      <div class="lbl">Known Limitations</div>
+    </div>
+    <div class="stat-box green">
+      <div class="num">192</div>
+      <div class="lbl">Tests Passing</div>
+    </div>
+  </div>
+
+  <h2>Fixed Bugs</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Severity</th>
+        <th>Title</th>
+        <th>File(s) Changed</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td><strong>1</strong></td>
+        <td><span class="sev-critical">Critical</span></td>
+        <td>
+          <strong>Scatter regression — unpaired xs/ys arrays</strong><br />
+          <small>xs and ys were filtered independently: a row with a valid x but null y would appear in xs but not ys, producing mismatched array lengths. <code>linearRegression()</code> returns null when lengths differ, silently disabling the regression line whenever any point had a missing coordinate.</small>
+          <div class="change-block">
+            <strong>Fix:</strong> Pre-filter to rows where <em>both</em> x and y are finite before splitting into xs / ys arrays, keeping them paired.<br />
+            <code>const paired = rows.filter(r =&gt; isFinite(Number(r[xCol])) &amp;&amp; isFinite(Number(r[yCol])))</code>
+          </div>
+        </td>
+        <td><span class="file-pill">DataVisualizationPage.tsx:185</span></td>
+        <td><span class="badge badge-fixed">Fixed</span></td>
+      </tr>
+
+      <tr>
+        <td><strong>2</strong></td>
+        <td><span class="sev-high">High</span></td>
+        <td>
+          <strong>Bar-horizontal — axis labels swapped</strong><br />
+          <small>The value axis (xAxis in ECharts horizontal bar) was labelled with <code>customization.yAxisLabel</code>, and the category axis (yAxis) with <code>customization.xAxisLabel</code>. This meant every user-entered axis label appeared on the wrong axis.</small>
+          <div class="change-block">
+            <strong>Fix:</strong> Swapped the assignments — value axis gets <code>xAxisLabel</code>, category axis gets <code>yAxisLabel</code>.<br />
+            <code>xAxis.name = customization.xAxisLabel || yCol</code><br />
+            <code>yAxis.name = customization.yAxisLabel || xCol</code>
+          </div>
+        </td>
+        <td><span class="file-pill">echartsBuilder.ts:200–201</span></td>
+        <td><span class="badge badge-fixed">Fixed</span></td>
+      </tr>
+
+      <tr>
+        <td><strong>3</strong></td>
+        <td><span class="sev-high">High</span></td>
+        <td>
+          <strong>Faceted chart — panel titles not rendered</strong><br />
+          <small>Panel title labels were placed using ECharts <code>graphic</code> elements with <code>left: "33%"</code> / <code>top: "8%"</code>. ECharts <code>graphic</code> components use pixel-based coordinates only — percentage strings are silently ignored, so all facet panel titles appeared at position (0, 0) or were invisible.</small>
+          <div class="change-block">
+            <strong>Fix:</strong> Replaced <code>graphic</code> array with ECharts' <code>title</code> array. The <code>title</code> component natively supports percentage strings for <code>left</code> / <code>top</code>, placing each label correctly in its panel.
+          </div>
+        </td>
+        <td><span class="file-pill">echartsBuilder.ts:648–669</span></td>
+        <td><span class="badge badge-fixed">Fixed</span></td>
+      </tr>
+
+      <tr>
+        <td><strong>4</strong></td>
+        <td><span class="sev-medium">Medium</span></td>
+        <td>
+          <strong>Field detector — leading-zero strings classified as numeric</strong><br />
+          <small>The comment in <code>isNumericValue</code> stated a leading-zero guard existed, but the guard was missing. <code>Number("007")</code> = 7 (finite), so zip codes, padded IDs, and similar strings were classified as <code>numeric</code> instead of <code>categorical</code>. This caused incorrect axis type selection and broken field-mapping suggestions for ID columns.</small>
+          <div class="change-block">
+            <strong>Fix:</strong> Added the missing guard before <code>Number()</code>:<br />
+            <code>if (/^0\d/.test(trimmed)) return false</code><br />
+            Consistent with the existing <code>isNumericString</code> guard in the cleaning feature.
+          </div>
+        </td>
+        <td><span class="file-pill">fieldDetector.ts:28</span></td>
+        <td><span class="badge badge-fixed">Fixed</span></td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  <h2>Investigated — Not a Real Bug</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Conclusion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>5</strong></td>
+        <td>
+          <strong>Heatmap-correlation — single-measure validator/builder mismatch</strong><br />
+          <small>Suspected that specifying <code>measures: ['x']</code> (1 column) might pass validation because the validator falls back to all numeric columns when measures are unspecified. On close inspection, the validator correctly reads <code>mapping.measures ?? allNumericCols</code>: when measures is explicitly <code>['x']</code>, <code>measures.length &lt; 2</code> fires and an error is emitted. The existing test at line 141 already covers and passes this case.</small>
+        </td>
+        <td><span class="badge badge-noissue">Not an Issue</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Known Limitations (not fixed — out of scope for this audit)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Severity</th>
+        <th>Title</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>L1</strong></td>
+        <td><span class="sev-low">Low</span></td>
+        <td>
+          <strong>Series lookups use <code>rows.find()</code> — returns first match only</strong><br />
+          <small>In bar-vertical, bar-grouped, bar-stacked, line, area (all with a series column), the per-category value is resolved with <code>rows.find(r =&gt; r[xCol] === cat &amp;&amp; r[seriesCol] === g)</code>. If raw data is not pre-aggregated (multiple rows with the same x + series pair), only the first row's value is used instead of the sum.</small>
+        </td>
+        <td>Only manifests when aggregation is not applied. The correct fix is to pre-aggregate data, which requires a UI change outside the scope of a pure bug audit.</td>
+      </tr>
+      <tr>
+        <td><strong>L2</strong></td>
+        <td><span class="sev-low">Low</span></td>
+        <td>
+          <strong>Group-by dropdown excludes date columns</strong><br />
+          <small><code>AggregationPanel</code> shows only <code>categorical</code> and <code>boolean</code> columns in the Group By selector. Date columns are a valid grouping key but are absent from the list.</small>
+        </td>
+        <td>UX improvement rather than a data-correctness bug. No data is corrupted — date columns simply cannot be chosen as a group-by key in the current UI.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="tests-box">
+    <strong>Test results after fixes:</strong> 192 tests passing across 14 test suites (was 188 before audit — 4 new regression tests added).
+    <code>npm run build</code> exits 0, zero TypeScript errors.
+  </div>
+
+  <h2>Files Modified</h2>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="file-pill">src/features/visualization/lib/fieldDetector.ts</span></td>
+        <td>Added <code>/^0\d/</code> leading-zero guard in <code>isNumericValue</code></td>
+      </tr>
+      <tr>
+        <td><span class="file-pill">src/features/visualization/lib/echartsBuilder.ts</span></td>
+        <td>Swapped bar-horizontal axis labels; replaced faceted <code>graphic</code> with ECharts <code>title</code> array</td>
+      </tr>
+      <tr>
+        <td><span class="file-pill">src/pages/DataVisualizationPage.tsx</span></td>
+        <td>Fixed scatter regression to filter paired valid rows before computing xs/ys</td>
+      </tr>
+      <tr>
+        <td><span class="file-pill">tests/visualization/fieldDetector.test.ts</span></td>
+        <td>Added 2 regression tests for leading-zero column detection</td>
+      </tr>
+      <tr>
+        <td><span class="file-pill">tests/visualization/echartsBuilder.test.ts</span></td>
+        <td>Added 2 regression tests: bar-horizontal label assignments, faceted title array structure</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>

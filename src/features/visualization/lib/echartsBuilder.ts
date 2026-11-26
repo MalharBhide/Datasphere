@@ -197,8 +197,8 @@ export function buildEChartsOption(
         tooltip: buildAxisTooltip(customization.numberFormat),
         legend: buildLegend(customization),
         grid: buildGrid(customization),
-        xAxis: { type: 'value', name: customization.yAxisLabel || yCol, axisLabel: { formatter: fmt } },
-        yAxis: { type: 'category', data: categories, name: customization.xAxisLabel || xCol },
+        xAxis: { type: 'value', name: customization.xAxisLabel || yCol, axisLabel: { formatter: fmt } },
+        yAxis: { type: 'category', data: categories, name: customization.yAxisLabel || xCol },
         series: [{ type: 'bar', data: values, itemStyle: { color: colors[0] }, label: labelOption }],
       }
     }
@@ -645,28 +645,26 @@ export function buildEChartsOption(
         label: { show: false },
       }))
 
-      const titleGraphics = facetValues.map((fv, idx) => ({
-        type: 'text',
-        style: {
-          text: fv,
-          fontSize: 11,
-          fontWeight: 'bold',
-          fill: '#475569',
-        },
+      // ECharts title array supports percentage left/top — use it instead of graphic elements
+      const facetTitles = facetValues.map((fv, idx) => ({
+        text: fv,
+        textStyle: { fontSize: 11, fontWeight: 'bold', color: '#475569' },
         left: `${(idx % cols) * (100 / cols) + 100 / cols / 2}%`,
         top: `${Math.floor(idx / cols) * (100 / rowCount) + 2}%`,
-        z: 100,
       }))
+
+      // Prepend the chart-level title if present
+      const chartTitle = buildTitle(customization)
+      const allTitles = chartTitle ? [chartTitle, ...facetTitles] : facetTitles
 
       return {
         color: colors,
-        title: buildTitle(customization),
+        title: allTitles,
         tooltip: { trigger: 'item' },
         grid: gridArr,
         xAxis: xAxes,
         yAxis: yAxes,
         series,
-        graphic: titleGraphics,
       }
     }
 

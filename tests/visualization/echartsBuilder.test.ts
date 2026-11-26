@@ -52,6 +52,20 @@ describe('echartsBuilder - bar-horizontal', () => {
     // yAxis should be category type
     expect((opt.yAxis as { type?: string }).type).toBe('category')
   })
+
+  it('assigns xAxisLabel override to the value axis (xAxis), yAxisLabel to the category axis (yAxis)', () => {
+    const config: ChartConfig = {
+      ...defaultChartConfig('bar-horizontal'),
+      fieldMapping: { xAxis: 'cat', yAxis: 'x' },
+    }
+    config.customization.xAxisLabel = 'Revenue'
+    config.customization.yAxisLabel = 'Country'
+    const opt = buildEChartsOption(config, catData, metas)
+    // xAxis is the value axis — should show the user's xAxisLabel ('Revenue')
+    expect((opt.xAxis as { name?: string }).name).toBe('Revenue')
+    // yAxis is the category axis — should show the user's yAxisLabel ('Country')
+    expect((opt.yAxis as { name?: string }).name).toBe('Country')
+  })
 })
 
 describe('echartsBuilder - bar-grouped', () => {
@@ -199,6 +213,23 @@ describe('echartsBuilder - faceted', () => {
     const opt = buildEChartsOption(cfg('faceted', { xAxis: 'cat', yAxis: 'x', facetBy: 'grp' }), catData, metas)
     const grid = opt.grid as unknown[]
     expect(grid.length).toBe(2)
+  })
+
+  it('uses title array for panel labels (not graphic), with percentage left/top strings', () => {
+    const opt = buildEChartsOption(cfg('faceted', { xAxis: 'cat', yAxis: 'x', facetBy: 'grp' }), catData, metas)
+    const titles = opt.title as { text?: string; left?: string; top?: string }[]
+    // Should be an array — one entry per facet panel (2 for G1, G2)
+    expect(Array.isArray(titles)).toBe(true)
+    expect(titles.length).toBe(2)
+    // Each title entry should have percentage-string left and top
+    titles.forEach((t) => {
+      expect(typeof t.left).toBe('string')
+      expect(t.left).toMatch(/%$/)
+      expect(typeof t.top).toBe('string')
+      expect(t.top).toMatch(/%$/)
+    })
+    // No graphic key on the returned option
+    expect((opt as Record<string, unknown>).graphic).toBeUndefined()
   })
 })
 

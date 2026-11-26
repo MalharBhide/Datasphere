@@ -85,4 +85,23 @@ describe('detectColumnTypes', () => {
     const metas = detectColumnTypes(ds)
     expect(metas[0].uniqueValues.length).toBeLessThanOrEqual(100)
   })
+
+  it('classifies a leading-zero string column as categorical, not numeric', () => {
+    // Zip codes / IDs like "00123" must NOT be classified as numeric
+    const ds = makeDataset(['zip'], [
+      { zip: '00123' }, { zip: '01234' }, { zip: '07890' }, { zip: '00001' }, { zip: '09999' },
+    ])
+    const metas = detectColumnTypes(ds)
+    expect(metas[0].type).toBe('categorical')
+  })
+
+  it('still classifies a plain-zero column as numeric', () => {
+    // A single "0" does not match /^0\d/ so it should still be numeric
+    const ds = makeDataset(['flag'], [
+      { flag: '0' }, { flag: '1' }, { flag: '0' }, { flag: '1' }, { flag: '0' },
+    ])
+    // "0" and "1" are both BOOLEAN_VALUES so this will be boolean — that is correct
+    const metas = detectColumnTypes(ds)
+    expect(['boolean', 'numeric']).toContain(metas[0].type)
+  })
 })

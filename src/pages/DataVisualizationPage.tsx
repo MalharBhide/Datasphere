@@ -183,8 +183,12 @@ export function DataVisualizationPage() {
         const yCol = fieldMapping.yAxis!
         let regression: ReturnType<typeof linearRegression> | null = null
         if (chartConfig.customization.showRegressionLine) {
-          const xs = baseRows.rows.map((r) => Number(r[xCol])).filter(isFinite)
-          const ys = baseRows.rows.map((r) => Number(r[yCol])).filter(isFinite)
+          // Filter to rows where BOTH x and y are finite numbers so the arrays stay paired
+          const paired = baseRows.rows.filter(
+            (r) => isFinite(Number(r[xCol])) && isFinite(Number(r[yCol])),
+          )
+          const xs = paired.map((r) => Number(r[xCol]))
+          const ys = paired.map((r) => Number(r[yCol]))
           regression = linearRegression(xs, ys)
         }
         return { transformed: baseRows, echartsOption: buildEChartsOption(chartConfig, baseRows, columnMetas, regression) }

@@ -24,7 +24,8 @@ function isNumericValue(v: string | number | null): v is number | string {
   if (typeof v === 'string') {
     const trimmed = v.trim()
     if (trimmed === '') return false
-    // Guard against leading-zero strings like "007" being treated as numeric
+    // Guard against leading-zero strings like "007" or "00123" being treated as numeric
+    if (/^0\d/.test(trimmed)) return false
     const num = Number(trimmed)
     return isFinite(num)
   }
